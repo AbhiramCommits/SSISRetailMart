@@ -5,6 +5,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @actions TABLE (action VARCHAR(10));
+
     MERGE dw.dim_store AS tgt
     USING
     (
@@ -32,9 +34,11 @@ BEGIN
                    updated_at = SYSUTCDATETIME()
     WHEN NOT MATCHED THEN
         INSERT (store_code, store_name, region, country, open_date, is_unknown)
-        VALUES (src.store_code, src.store_name, src.region, src.country, src.open_date, 0);
+        VALUES (src.store_code, src.store_name, src.region, src.country, src.open_date, 0)
+    OUTPUT $action INTO @actions(action);
 
-    DECLARE @affected BIGINT = @@ROWCOUNT;
-    SELECT @affected AS rows_affected;
+    SELECT
+        CAST((SELECT COUNT(*) FROM @actions WHERE action = 'INSERT') AS BIGINT) AS rows_inserted,
+        CAST((SELECT COUNT(*) FROM @actions WHERE action = 'UPDATE') AS BIGINT) AS rows_updated;
 END
 GO

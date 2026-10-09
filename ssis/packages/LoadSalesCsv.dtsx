@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package" DTS:ExecutableType="Microsoft.Package" DTS:ObjectName="LoadSalesCsv">
+  <DTS:Property DTS:Name="PackageFormatVersion">8</DTS:Property>
+  <DTS:Property DTS:Name="Description">Loop over daily sales CSVs, derive amounts/date_key, reject bad rows.</DTS:Property>
+
+  <DTS:PackageParameters>
+    <DTS:PackageParameter DTS:ObjectName="BatchId" DTS:DataType="8">
+      <DTS:Property DTS:Name="Value">0</DTS:Property>
+    </DTS:PackageParameter>
+  </DTS:PackageParameters>
+
+  <DTS:Variables>
+    <DTS:Variable DTS:Namespace="User" DTS:ObjectName="LandingPath" DTS:DataType="8">
+      <DTS:Property DTS:Name="Value">data/landing/</DTS:Property>
+    </DTS:Variable>
+    <DTS:Variable DTS:Namespace="User" DTS:ObjectName="CurrentFile" DTS:DataType="8">
+      <DTS:Property DTS:Name="Value"></DTS:Property>
+    </DTS:Variable>
+  </DTS:Variables>
+
+  <DTS:ConnectionManagers>
+    <DTS:ConnectionManager DTS:refId="Package.ConnectionManagers[RetailMart]"
+      DTS:CreationName="OLEDB" DTS:ObjectName="RetailMart">
+      <DTS:Property DTS:Name="ConnectionString">RetailMart</DTS:Property>
+    </DTS:ConnectionManager>
+    <DTS:ConnectionManager DTS:refId="Package.ConnectionManagers[SalesCsv]"
+      DTS:CreationName="FLATFILE" DTS:ObjectName="SalesCsv">
+      <DTS:Property DTS:Name="ConnectionStringExpression">@[User::CurrentFile]</DTS:Property>
+      <DTS:Property DTS:Name="Format">Delimited</DTS:Property>
+      <DTS:Property DTS:Name="ColumnDelimiter">,</DTS:Property>
+      <DTS:Property DTS:Name="TextQualifier">"</DTS:Property>
+      <DTS:Property DTS:Name="ColumnNamesInFirstDataRow">True</DTS:Property>
+      <DTS:FlatFileColumns>
+        <DTS:FlatFileColumn DTS:ObjectName="txn_id" DTS:DataType="string" />
+        <DTS:FlatFileColumn DTS:ObjectName="txn_ts" DTS:DataType="string" />
+        <DTS:FlatFileColumn DTS:ObjectName="store_code" DTS:DataType="string" />
+        <DTS:FlatFileColumn DTS:ObjectName="sku" DTS:DataType="string" />
+        <DTS:FlatFileColumn DTS:ObjectName="qty" DTS:DataType="string" />
+        <DTS:FlatFileColumn DTS:ObjectName="unit_price" DTS:DataType="string" />
+        <DTS:FlatFileColumn DTS:ObjectName="discount_pct" DTS:DataType="string" />
+        <DTS:FlatFileColumn DTS:ObjectName="channel" DTS:DataType="string" />
+      </DTS:FlatFileColumns>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+
+  <DTS:Executables>
+    <DTS:Executable DTS:refId="Package\Foreach Sales Files"
+      DTS:ExecutableType="Microsoft.ForEachLoop" DTS:ObjectName="Foreach Sales Files">
+      <DTS:Property DTS:Name="Enumerator">ForeachFile</DTS:Property>
+      <DTS:Property DTS:Name="DirectoryExpression">@[User::LandingPath]</DTS:Property>
+      <DTS:Property DTS:Name="FileSpec">sales_*.csv</DTS:Property>
+      <DTS:Property DTS:Name="VariableName">User::CurrentFile</DTS:Property>
+
+      <DTS:Executables>
+        <DTS:Executable DTS:refId="Package\Foreach Sales Files\Load Sales Data Flow"
+          DTS:ExecutableType="Microsoft.Pipeline" DTS:ObjectName="Load Sales Data Flow">
+          <DTS:ObjectData>
+            <pipeline:Pipeline xmlns:pipeline="www.microsoft.com/SqlServer/Dts">
+              <pipeline:components>
+                <pipeline:component refId="srcSales" name="Sales CSV Source"
+                  componentClassID="Microsoft.FlatFileSource" connectionManager="SalesCsv">
+                  <pipeline:outputs>
+                    <pipeline:output refId="srcSales.Output" name="Output">
+                      <pipeline:columns>
+                        <pipeline:column name="txn_id" dataType="string" />
+                        <pipeline:column name="txn_ts" dataType="string" />
+                        <pipeline:column name="store_code" dataType="string" />
+                        <pipeline:column name="sku" dataType="string" />
+                        <pipeline:column name="qty" dataType="string" />
+                        <pipeline:column name="unit_price" dataType="string" />
+                        <pipeline:column name="discount_pct" dataType="string" />
+                        <pipeline:column name="channel" dataType="string" />
+                      </pipeline:columns>
+                    </pipeline:output>
+                    <pipeline:output refId="srcSales.Error" name="Error" isErrorOutput="True" />
+                  </pipeline:outputs>
+                </pipeline:component>
+
+                <pipeline:component refId="dcSales" name="Derived Column"
+                  componentClassID="Microsoft.DerivedColumn">
+                  <pipeline:derivedColumns>
+                    <pipeline:derivedColumn name="txn_ts_raw" expression="[txn_ts]" />
+                    <pipeline:derivedColumn name="qty_raw" expression="[qty]" />
+                    <pipeline:derivedColumn name="unit_price_raw" expression="[unit_price]" />
+                    <pipeline:derivedColumn name="discount_pct_raw" expression="[discount_pct]" />
+                    <pipeline:derivedColumn name="qty" expression="(DT_I4)[qty]" />
+                    <pipeline:derivedColumn name="unit_price" expression="(DT_DECIMAL,4)[unit_price]" />
+                    <pipeline:derivedColumn name="discount_pct" expression="(DT_DECIMAL,4)[discount_pct]" />
+                    <pipeline:derivedColumn name="date_key" expression="(DT_I4)(YEAR((DT_DBDATE)[txn_ts]) * 10000 + MONTH((DT_DBDATE)[txn_ts]) * 100 + DAY((DT_DBDATE)[txn_ts]))" />
+                    <pipeline:derivedColumn name="gross_amount" expression="(DT_DECIMAL,4)((DT_DECIMAL,4)[qty] * (DT_DECIMAL,4)[unit_price])" />
+                    <pipeline:derivedColumn name="discount_amount" expression="(DT_DECIMAL,4)((DT_DECIMAL,4)[gross_amount] * (DT_DECIMAL,4)[discount_pct] / 100)" />
+                    <pipeline:derivedColumn name="net_amount" expression="(DT_DECIMAL,4)((DT_DECIMAL,4)[gross_amount] - (DT_DECIMAL,4)[discount_amount])" />
+                    <pipeline:derivedColumn name="is_valid" expression="(DT_BOOL)1" />
+                  </pipeline:derivedColumns>
+                  <pipeline:outputs>
+                    <pipeline:output refId="dcSales.Output" name="Output" />
+                    <pipeline:output refId="dcSales.Error" name="Error" isErrorOutput="True" />
+                  </pipeline:outputs>
+                </pipeline:component>
+
+                <pipeline:component refId="lkpProduct" name="Lookup dim_product"
+                  componentClassID="Microsoft.Lookup" connectionManager="RetailMart">
+                  <pipeline:properties>
+                    <pipeline:property name="sqlCommand">SELECT sku, product_sk FROM dw.dim_product WHERE is_current = 1</pipeline:property>
+                  </pipeline:properties>
+                  <pipeline:joinColumns>
+                    <pipeline:joinColumn left="sku" right="sku" />
+                  </pipeline:joinColumns>
+                  <pipeline:outputs>
+                    <pipeline:output refId="lkpProduct.Output" name="Output" />
+                    <pipeline:output refId="lkpProduct.NoMatch" name="NoMatch" />
+                  </pipeline:outputs>
+                </pipeline:component>
+
+                <pipeline:component refId="lkpStore2" name="Lookup dim_store"
+                  componentClassID="Microsoft.Lookup" connectionManager="RetailMart">
+                  <pipeline:properties>
+                    <pipeline:property name="sqlCommand">SELECT store_code, store_sk FROM dw.dim_store</pipeline:property>
+                  </pipeline:properties>
+                  <pipeline:joinColumns>
+                    <pipeline:joinColumn left="store_code" right="store_code" />
+                  </pipeline:joinColumns>
+                  <pipeline:outputs>
+                    <pipeline:output refId="lkpStore2.Output" name="Output" />
+                    <pipeline:output refId="lkpStore2.NoMatch" name="NoMatch" />
+                  </pipeline:outputs>
+                </pipeline:component>
+
+                <pipeline:component refId="splitSales" name="Conditional Split"
+                  componentClassID="Microsoft.ConditionalSplit">
+                  <pipeline:properties>
+                    <pipeline:property name="rejectOutputs">Reject</pipeline:property>
+                  </pipeline:properties>
+                  <pipeline:cases>
+                    <pipeline:case name="Reject" expression="(LEN([sku]) &lt;&gt; 6) || (SUBSTRING([sku],1,1) &lt;&gt; &quot;P&quot;) || ((DT_I4)SUBSTRING([sku],2,5) &lt; 1) || ((DT_I4)SUBSTRING([sku],2,5) &gt; 5000) || ((DT_DECIMAL,4)[unit_price] &lt; 0)" />
+                  </pipeline:cases>
+                  <pipeline:outputs>
+                    <pipeline:output refId="splitSales.Reject" name="Reject" isErrorOutput="True" />
+                    <pipeline:output refId="splitSales.Default" name="Default" />
+                  </pipeline:outputs>
+                </pipeline:component>
+
+                <pipeline:component refId="destStgSales" name="OLE DB Destination stg.sales_raw"
+                  componentClassID="Microsoft.OleDbDestination" connectionManager="RetailMart">
+                  <pipeline:properties>
+                    <pipeline:property name="tableName">stg.sales_raw</pipeline:property>
+                  </pipeline:properties>
+                  <pipeline:outputs />
+                </pipeline:component>
+
+                <pipeline:component refId="destFailedSales" name="OLE DB Destination audit.failed_rows"
+                  componentClassID="Microsoft.OleDbDestination" connectionManager="RetailMart">
+                  <pipeline:properties>
+                    <pipeline:property name="tableName">audit.failed_rows</pipeline:property>
+                  </pipeline:properties>
+                  <pipeline:outputs />
+                </pipeline:component>
+              </pipeline:components>
+
+              <pipeline:paths>
+                <pipeline:path refId="q1" start="srcSales" end="dcSales" startOutput="Output" endInput="Input" />
+                <pipeline:path refId="q2" start="srcSales" end="destFailedSales" startOutput="Error" endInput="Input" />
+                <pipeline:path refId="q3" start="dcSales" end="lkpProduct" startOutput="Output" endInput="Input" />
+                <pipeline:path refId="q4" start="dcSales" end="destFailedSales" startOutput="Error" endInput="Input" />
+                <pipeline:path refId="q5" start="lkpProduct" end="lkpStore2" startOutput="Output" endInput="Input" />
+                <pipeline:path refId="q6" start="lkpProduct" end="lkpStore2" startOutput="NoMatch" endInput="Input" />
+                <pipeline:path refId="q7" start="lkpStore2" end="splitSales" startOutput="Output" endInput="Input" />
+                <pipeline:path refId="q8" start="lkpStore2" end="splitSales" startOutput="NoMatch" endInput="Input" />
+                <pipeline:path refId="q9" start="splitSales" end="destStgSales" startOutput="Default" endInput="Input" />
+                <pipeline:path refId="q10" start="splitSales" end="destFailedSales" startOutput="Reject" endInput="Input" />
+              </pipeline:paths>
+            </pipeline:Pipeline>
+          </DTS:ObjectData>
+        </DTS:Executable>
+      </DTS:Executables>
+    </DTS:Executable>
+  </DTS:Executables>
+</DTS:Executable>

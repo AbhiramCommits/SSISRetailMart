@@ -16,7 +16,9 @@ BEGIN
         @price DECIMAL(18,4),
         @active BIT,
         @eff DATE,
-        @hash CHAR(64);
+        @hash CHAR(64),
+        @cur_sk INT,
+        @cur_hash CHAR(64);
 
     DECLARE staged CURSOR LOCAL FAST_FORWARD FOR
         SELECT
@@ -34,7 +36,8 @@ BEGIN
 
     WHILE @@FETCH_STATUS = 0
     BEGIN
-        DECLARE @cur_sk INT, @cur_hash CHAR(64);
+        SET @cur_sk = NULL;
+        SET @cur_hash = NULL;
         SELECT @cur_sk = product_sk, @cur_hash = row_hash
         FROM dw.dim_product
         WHERE sku = @sku AND is_current = 1;

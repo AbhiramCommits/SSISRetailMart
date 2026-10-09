@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package" DTS:ExecutableType="Microsoft.Package" DTS:ObjectName="LoadStores">
+  <DTS:Property DTS:Name="PackageFormatVersion">8</DTS:Property>
+  <DTS:Property DTS:Name="Description">Load fixed-width stores.txt into stg.stores_raw with error redirection.</DTS:Property>
+
+  <DTS:PackageParameters>
+    <DTS:PackageParameter DTS:ObjectName="BatchId" DTS:DataType="8">
+      <DTS:Property DTS:Name="Value">0</DTS:Property>
+    </DTS:PackageParameter>
+  </DTS:PackageParameters>
+
+  <DTS:Variables>
+    <DTS:Variable DTS:Namespace="User" DTS:ObjectName="LandingPath" DTS:DataType="8">
+      <DTS:Property DTS:Name="Value">data/landing/</DTS:Property>
+    </DTS:Variable>
+  </DTS:Variables>
+
+  <DTS:ConnectionManagers>
+    <DTS:ConnectionManager DTS:refId="Package.ConnectionManagers[RetailMart]"
+      DTS:CreationName="OLEDB" DTS:ObjectName="RetailMart">
+      <DTS:Property DTS:Name="ConnectionString">RetailMart</DTS:Property>
+    </DTS:ConnectionManager>
+    <DTS:ConnectionManager DTS:refId="Package.ConnectionManagers[StoresFlatFile]"
+      DTS:CreationName="FLATFILE" DTS:ObjectName="StoresFlatFile">
+      <DTS:Property DTS:Name="ConnectionStringExpression">@[User::LandingPath] + "stores.txt"</DTS:Property>
+      <DTS:Property DTS:Name="Format">FixedWidth</DTS:Property>
+      <DTS:Property DTS:Name="ColumnNamesInFirstDataRow">False</DTS:Property>
+      <DTS:FlatFileColumns>
+        <DTS:FlatFileColumn DTS:ObjectName="store_code" DTS:Width="6" DTS:DataType="string" />
+        <DTS:FlatFileColumn DTS:ObjectName="store_name" DTS:Width="40" DTS:DataType="string" />
+        <DTS:FlatFileColumn DTS:ObjectName="region" DTS:Width="12" DTS:DataType="string" />
+        <DTS:FlatFileColumn DTS:ObjectName="country" DTS:Width="3" DTS:DataType="string" />
+        <DTS:FlatFileColumn DTS:ObjectName="open_date_raw" DTS:Width="10" DTS:DataType="string" />
+      </DTS:FlatFileColumns>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+
+  <DTS:Executables>
+    <DTS:Executable DTS:refId="Package\Load Stores Data Flow"
+      DTS:ExecutableType="Microsoft.Pipeline" DTS:ObjectName="Load Stores Data Flow">
+      <DTS:ObjectData>
+        <pipeline:Pipeline xmlns:pipeline="www.microsoft.com/SqlServer/Dts">
+          <pipeline:components>
+            <pipeline:component refId="srcStores" name="Stores Flat File Source"
+              componentClassID="Microsoft.FlatFileSource" connectionManager="StoresFlatFile">
+              <pipeline:outputs>
+                <pipeline:output refId="srcStores.Output" name="Output">
+                  <pipeline:columns>
+                    <pipeline:column name="store_code" dataType="string" />
+                    <pipeline:column name="store_name" dataType="string" />
+                    <pipeline:column name="region" dataType="string" />
+                    <pipeline:column name="country" dataType="string" />
+                    <pipeline:column name="open_date_raw" dataType="string" />
+                  </pipeline:columns>
+                </pipeline:output>
+                <pipeline:output refId="srcStores.Error" name="Error" isErrorOutput="True" />
+              </pipeline:outputs>
+            </pipeline:component>
+
+            <pipeline:component refId="dcStores" name="Derived Column"
+              componentClassID="Microsoft.DerivedColumn">
+              <pipeline:derivedColumns>
+                <pipeline:derivedColumn name="clean_store_code" expression="TRIM(UPPER([store_code]))" />
+                <pipeline:derivedColumn name="clean_store_name" expression="TRIM(UPPER([store_name]))" />
+                <pipeline:derivedColumn name="clean_region" expression="TRIM([region])" />
+                <pipeline:derivedColumn name="open_date" expression="(DT_DATE)[open_date_raw]" />
+                <pipeline:derivedColumn name="is_valid" expression="(DT_BOOL)1" />
+              </pipeline:derivedColumns>
+              <pipeline:outputs>
+                <pipeline:output refId="dcStores.Output" name="Output" />
+                <pipeline:output refId="dcStores.Error" name="Error" isErrorOutput="True" />
+              </pipeline:outputs>
+            </pipeline:component>
+
+            <pipeline:component refId="lkpStore" name="Lookup dim_store"
+              componentClassID="Microsoft.Lookup" connectionManager="RetailMart">
+              <pipeline:properties>
+                <pipeline:property name="sqlCommand">SELECT store_code, store_sk FROM dw.dim_store</pipeline:property>
+              </pipeline:properties>
+              <pipeline:joinColumns>
+                <pipeline:joinColumn left="store_code" right="store_code" />
+              </pipeline:joinColumns>
+              <pipeline:outputs>
+                <pipeline:output refId="lkpStore.Output" name="Output" />
+                <pipeline:output refId="lkpStore.NoMatch" name="NoMatch" />
+              </pipeline:outputs>
+            </pipeline:component>
+
+            <pipeline:component refId="splitStores" name="Conditional Split"
+              componentClassID="Microsoft.ConditionalSplit">
+              <pipeline:properties>
+                <pipeline:property name="rejectOutputs">Reject</pipeline:property>
+              </pipeline:properties>
+              <pipeline:cases>
+                <pipeline:case name="Reject" expression="(LEN([clean_region]) = 0) || (ISNULL([open_date]))" />
+              </pipeline:cases>
+              <pipeline:outputs>
+                <pipeline:output refId="splitStores.Reject" name="Reject" isErrorOutput="True" />
+                <pipeline:output refId="splitStores.Default" name="Default" />
+              </pipeline:outputs>
+            </pipeline:component>
+
+            <pipeline:component refId="destStgStores" name="OLE DB Destination stg.stores_raw"
+              componentClassID="Microsoft.OleDbDestination" connectionManager="RetailMart">
+              <pipeline:properties>
+                <pipeline:property name="tableName">stg.stores_raw</pipeline:property>
+              </pipeline:properties>
+              <pipeline:outputs />
+            </pipeline:component>
+
+            <pipeline:component refId="destFailed" name="OLE DB Destination audit.failed_rows"
+              componentClassID="Microsoft.OleDbDestination" connectionManager="RetailMart">
+              <pipeline:properties>
+                <pipeline:property name="tableName">audit.failed_rows</pipeline:property>
+              </pipeline:properties>
+              <pipeline:outputs />
+            </pipeline:component>
+          </pipeline:components>
+
+          <pipeline:paths>
+            <pipeline:path refId="p1" start="srcStores" end="dcStores" startOutput="Output" endInput="Input" />
+            <pipeline:path refId="p2" start="dcStores" end="lkpStore" startOutput="Output" endInput="Input" />
+            <pipeline:path refId="p3" start="lkpStore" end="splitStores" startOutput="Output" endInput="Input" />
+            <pipeline:path refId="p4" start="lkpStore" end="splitStores" startOutput="NoMatch" endInput="Input" />
+            <pipeline:path refId="p5" start="splitStores" end="destStgStores" startOutput="Default" endInput="Input" />
+            <pipeline:path refId="p6" start="splitStores" end="destFailed" startOutput="Reject" endInput="Input" />
+            <pipeline:path refId="p7" start="dcStores" end="destFailed" startOutput="Error" endInput="Input" />
+            <pipeline:path refId="p8" start="srcStores" end="destFailed" startOutput="Error" endInput="Input" />
+          </pipeline:paths>
+        </pipeline:Pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+  </DTS:Executables>
+</DTS:Executable>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package" DTS:ExecutableType="Microsoft.Package" DTS:ObjectName="LoadDimensions">
+  <DTS:Property DTS:Name="PackageFormatVersion">8</DTS:Property>
+  <DTS:Property DTS:Name="Description">Call the SCD1 store proc and SCD2 product proc via Execute SQL Tasks.</DTS:Property>
+
+  <DTS:PackageParameters>
+    <DTS:PackageParameter DTS:ObjectName="BatchId" DTS:DataType="8">
+      <DTS:Property DTS:Name="Value">0</DTS:Property>
+    </DTS:PackageParameter>
+  </DTS:PackageParameters>
+
+  <DTS:Variables />
+  <DTS:ConnectionManagers>
+    <DTS:ConnectionManager DTS:refId="Package.ConnectionManagers[RetailMart]"
+      DTS:CreationName="OLEDB" DTS:ObjectName="RetailMart">
+      <DTS:Property DTS:Name="ConnectionString">RetailMart</DTS:Property>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+
+  <DTS:Executables>
+    <DTS:Executable DTS:refId="Package\Load Store Dimension"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask" DTS:ObjectName="Load Store Dimension">
+      <DTS:Property DTS:Name="Connection">RetailMart</DTS:Property>
+      <DTS:Property DTS:Name="SqlStatement">EXEC dw.sp_load_dim_store @batch_id = @[User::BatchId]</DTS:Property>
+    </DTS:Executable>
+    <DTS:Executable DTS:refId="Package\Load Product Dimension SCD2"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask" DTS:ObjectName="Load Product Dimension SCD2">
+      <DTS:Property DTS:Name="Connection">RetailMart</DTS:Property>
+      <DTS:Property DTS:Name="SqlStatement">EXEC dw.sp_load_dim_product_scd2 @batch_id = @[User::BatchId]</DTS:Property>
+    </DTS:Executable>
+  </DTS:Executables>
+
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint DTS:refId="Package.PrecedenceConstraints[pc1]"
+      DTS:From="Package\Load Store Dimension" DTS:To="Package\Load Product Dimension SCD2"
+      DTS:EvaluationOperation="Constraint" DTS:Value="1" />
+  </DTS:PrecedenceConstraints>
+</DTS:Executable>

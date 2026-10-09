@@ -5,6 +5,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DELETE FROM audit.row_count_check WHERE batch_id = @batch_id;
+
     INSERT INTO audit.row_count_check (batch_id, table_name, source_rows, target_rows, delta)
     SELECT @batch_id, 'stg.sales_raw -> dw.fact_sales',
            (SELECT COUNT_BIG(*) FROM stg.sales_raw WHERE batch_id = @batch_id AND is_valid = 1),
@@ -33,6 +35,8 @@ CREATE OR ALTER PROCEDURE audit.sp_record_checksums
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    DELETE FROM audit.checksum_check WHERE batch_id = @batch_id;
 
     DECLARE @src_qty_sum DECIMAL(38,4), @tgt_qty_sum DECIMAL(38,4),
             @src_net_sum DECIMAL(38,4), @tgt_net_sum DECIMAL(38,4),

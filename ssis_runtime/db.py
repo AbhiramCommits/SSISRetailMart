@@ -83,6 +83,8 @@ def query(conn, sql: str, params: Sequence | None = None) -> list[tuple]:
     cursor = conn.cursor()
     try:
         cursor.execute(sql, tuple(params) if params else None)
+        if cursor.description is None:
+            return []
         return cursor.fetchall()
     finally:
         cursor.close()
@@ -92,6 +94,8 @@ def query_dicts(conn, sql: str, params: Sequence | None = None) -> list[dict]:
     cursor = conn.cursor(as_dict=True)
     try:
         cursor.execute(sql, tuple(params) if params else None)
+        if cursor.description is None:
+            return []
         return list(cursor.fetchall())
     finally:
         cursor.close()

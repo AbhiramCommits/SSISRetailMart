@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package" DTS:ExecutableType="Microsoft.Package" DTS:ObjectName="LoadFactSales">
+  <DTS:Property DTS:Name="PackageFormatVersion">8</DTS:Property>
+  <DTS:Property DTS:Name="Description">Incremental fact load, inventory snapshot, row-count and checksum audit.</DTS:Property>
+
+  <DTS:PackageParameters>
+    <DTS:PackageParameter DTS:ObjectName="BatchId" DTS:DataType="8">
+      <DTS:Property DTS:Name="Value">0</DTS:Property>
+    </DTS:PackageParameter>
+  </DTS:PackageParameters>
+
+  <DTS:Variables />
+  <DTS:ConnectionManagers>
+    <DTS:ConnectionManager DTS:refId="Package.ConnectionManagers[RetailMart]"
+      DTS:CreationName="OLEDB" DTS:ObjectName="RetailMart">
+      <DTS:Property DTS:Name="ConnectionString">RetailMart</DTS:Property>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+
+  <DTS:Executables>
+    <DTS:Executable DTS:refId="Package\Load Fact Sales"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask" DTS:ObjectName="Load Fact Sales">
+      <DTS:Property DTS:Name="Connection">RetailMart</DTS:Property>
+      <DTS:Property DTS:Name="SqlStatement">EXEC dw.sp_load_fact_sales_incremental @batch_id = @[User::BatchId]</DTS:Property>
+    </DTS:Executable>
+    <DTS:Executable DTS:refId="Package\Build Inventory Snapshot"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask" DTS:ObjectName="Build Inventory Snapshot">
+      <DTS:Property DTS:Name="Connection">RetailMart</DTS:Property>
+      <DTS:Property DTS:Name="SqlStatement">EXEC dw.sp_build_inventory_snapshot @batch_id = @[User::BatchId]</DTS:Property>
+    </DTS:Executable>
+    <DTS:Executable DTS:refId="Package\Record Row Counts"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask" DTS:ObjectName="Record Row Counts">
+      <DTS:Property DTS:Name="Connection">RetailMart</DTS:Property>
+      <DTS:Property DTS:Name="SqlStatement">EXEC audit.sp_record_row_counts @batch_id = @[User::BatchId]</DTS:Property>
+    </DTS:Executable>
+    <DTS:Executable DTS:refId="Package\Record Checksums"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask" DTS:ObjectName="Record Checksums">
+      <DTS:Property DTS:Name="Connection">RetailMart</DTS:Property>
+      <DTS:Property DTS:Name="SqlStatement">EXEC audit.sp_record_checksums @batch_id = @[User::BatchId]</DTS:Property>
+    </DTS:Executable>
+  </DTS:Executables>
+
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint DTS:refId="Package.PrecedenceConstraints[pc1]"
+      DTS:From="Package\Load Fact Sales" DTS:To="Package\Build Inventory Snapshot"
+      DTS:EvaluationOperation="Constraint" DTS:Value="1" />
+    <DTS:PrecedenceConstraint DTS:refId="Package.PrecedenceConstraints[pc2]"
+      DTS:From="Package\Build Inventory Snapshot" DTS:To="Package\Record Row Counts"
+      DTS:EvaluationOperation="Constraint" DTS:Value="1" />
+    <DTS:PrecedenceConstraint DTS:refId="Package.PrecedenceConstraints[pc3]"
+      DTS:From="Package\Record Row Counts" DTS:To="Package\Record Checksums"
+      DTS:EvaluationOperation="Constraint" DTS:Value="1" />
+  </DTS:PrecedenceConstraints>
+</DTS:Executable>

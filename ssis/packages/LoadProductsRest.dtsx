@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package" DTS:ExecutableType="Microsoft.Package" DTS:ObjectName="LoadProductsRest">
+  <DTS:Property DTS:Name="PackageFormatVersion">8</DTS:Property>
+  <DTS:Property DTS:Name="Description">Paged JSON product master + changes feed into stg.products_raw with row_hash.</DTS:Property>
+
+  <DTS:PackageParameters>
+    <DTS:PackageParameter DTS:ObjectName="BatchId" DTS:DataType="8">
+      <DTS:Property DTS:Name="Value">0</DTS:Property>
+    </DTS:PackageParameter>
+  </DTS:PackageParameters>
+
+  <DTS:Variables>
+    <DTS:Variable DTS:Namespace="User" DTS:ObjectName="LandingPath" DTS:DataType="8">
+      <DTS:Property DTS:Name="Value">data/landing/</DTS:Property>
+    </DTS:Variable>
+    <DTS:Variable DTS:Namespace="User" DTS:ObjectName="ProductApiUrl" DTS:DataType="8">
+      <DTS:Property DTS:Name="Value">http://127.0.0.1:8099</DTS:Property>
+    </DTS:Variable>
+    <DTS:Variable DTS:Namespace="User" DTS:ObjectName="UseLiveApi" DTS:DataType="11">
+      <DTS:Property DTS:Name="Value">False</DTS:Property>
+    </DTS:Variable>
+  </DTS:Variables>
+
+  <DTS:ConnectionManagers>
+    <DTS:ConnectionManager DTS:refId="Package.ConnectionManagers[RetailMart]"
+      DTS:CreationName="OLEDB" DTS:ObjectName="RetailMart">
+      <DTS:Property DTS:Name="ConnectionString">RetailMart</DTS:Property>
+    </DTS:ConnectionManager>
+    <DTS:ConnectionManager DTS:refId="Package.ConnectionManagers[ProductApi]"
+      DTS:CreationName="HTTP" DTS:ObjectName="ProductApi">
+      <DTS:Property DTS:Name="ConnectionStringExpression">@[User::ProductApiUrl]</DTS:Property>
+      <DTS:Property DTS:Name="UseSecureConnection">False</DTS:Property>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+
+  <DTS:Executables>
+    <DTS:Executable DTS:refId="Package\Load Products Data Flow"
+      DTS:ExecutableType="Microsoft.Pipeline" DTS:ObjectName="Load Products Data Flow">
+      <DTS:ObjectData>
+        <pipeline:Pipeline xmlns:pipeline="www.microsoft.com/SqlServer/Dts">
+          <pipeline:components>
+            <pipeline:component refId="srcPages" name="Paged Product JSON Source"
+              componentClassID="Microsoft.JsonSource" connectionManager="ProductApi">
+              <pipeline:properties>
+                <pipeline:property name="pathExpression">@[User::LandingPath] + "products_page_*.json"</pipeline:property>
+                <pipeline:property name="jsonRoot">items</pipeline:property>
+                <pipeline:property name="defaultEffectiveDate">2024-01-01</pipeline:property>
+                <pipeline:property name="useLiveApi">false</pipeline:property>
+                <pipeline:property name="apiPath">/products?page=1</pipeline:property>
+              </pipeline:properties>
+              <pipeline:outputs>
+                <pipeline:output refId="srcPages.Output" name="Output" />
+                <pipeline:output refId="srcPages.Error" name="Error" isErrorOutput="True" />
+              </pipeline:outputs>
+            </pipeline:component>
+
+            <pipeline:component refId="srcChanges" name="Product Changes JSON Source"
+              componentClassID="Microsoft.JsonSource" connectionManager="ProductApi">
+              <pipeline:properties>
+                <pipeline:property name="pathExpression">@[User::LandingPath] + "product_changes.json"</pipeline:property>
+                <pipeline:property name="jsonRoot">changes</pipeline:property>
+                <pipeline:property name="useLiveApi">false</pipeline:property>
+                <pipeline:property name="apiPath">/products/changes?since=2024-01-01</pipeline:property>
+              </pipeline:properties>
+              <pipeline:outputs>
+                <pipeline:output refId="srcChanges.Output" name="Output" />
+                <pipeline:output refId="srcChanges.Error" name="Error" isErrorOutput="True" />
+              </pipeline:outputs>
+            </pipeline:component>
+
+            <pipeline:component refId="dcProducts" name="Derived Column row_hash"
+              componentClassID="Microsoft.DerivedColumn">
+              <pipeline:derivedColumns>
+                <pipeline:derivedColumn name="list_price" expression="(DT_STR,20)[list_price]" />
+                <pipeline:derivedColumn name="is_active" expression="(DT_STR,10)[is_active]" />
+                <pipeline:derivedColumn name="effective_date" expression="(DT_DBDATE)[effective_date]" />
+                <pipeline:derivedColumn name="row_hash" expression="ROW_HASH(TRIM([name]), TRIM([category]), TRIM([subcategory]), TRIM([brand]), (DT_STR,20)[list_price], (DT_STR,10)[is_active])" />
+              </pipeline:derivedColumns>
+              <pipeline:outputs>
+                <pipeline:output refId="dcProducts.Output" name="Output" />
+                <pipeline:output refId="dcProducts.Error" name="Error" isErrorOutput="True" />
+              </pipeline:outputs>
+            </pipeline:component>
+
+            <pipeline:component refId="destStgProducts" name="OLE DB Destination stg.products_raw"
+              componentClassID="Microsoft.OleDbDestination" connectionManager="RetailMart">
+              <pipeline:properties>
+                <pipeline:property name="tableName">stg.products_raw</pipeline:property>
+              </pipeline:properties>
+              <pipeline:outputs />
+            </pipeline:component>
+
+            <pipeline:component refId="destFailedProducts" name="OLE DB Destination audit.failed_rows"
+              componentClassID="Microsoft.OleDbDestination" connectionManager="RetailMart">
+              <pipeline:properties>
+                <pipeline:property name="tableName">audit.failed_rows</pipeline:property>
+              </pipeline:properties>
+              <pipeline:outputs />
+            </pipeline:component>
+          </pipeline:components>
+
+          <pipeline:paths>
+            <pipeline:path refId="r1" start="srcPages" end="dcProducts" startOutput="Output" endInput="Input" />
+            <pipeline:path refId="r2" start="srcChanges" end="dcProducts" startOutput="Output" endInput="Input" />
+            <pipeline:path refId="r3" start="dcProducts" end="destStgProducts" startOutput="Output" endInput="Input" />
+            <pipeline:path refId="r4" start="dcProducts" end="destFailedProducts" startOutput="Error" endInput="Input" />
+            <pipeline:path refId="r5" start="srcPages" end="destFailedProducts" startOutput="Error" endInput="Input" />
+            <pipeline:path refId="r6" start="srcChanges" end="destFailedProducts" startOutput="Error" endInput="Input" />
+          </pipeline:paths>
+        </pipeline:Pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+  </DTS:Executables>
+</DTS:Executable>
