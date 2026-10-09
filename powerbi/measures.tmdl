@@ -1,0 +1,74 @@
+// RetailMart DAX measures (Tabular Model Definition Language).
+// Verified against real warehouse data by tests/test_dax_parity.py.
+
+table fact_sales
+
+    measure 'Net Sales' = SUMX('fact_sales', 'fact_sales'[net_amount])
+        formatString: #,0.00
+        displayFolder: Sales
+
+    measure 'Gross Sales' = SUMX('fact_sales', 'fact_sales'[gross_amount])
+        formatString: #,0.00
+        displayFolder: Sales
+
+    measure 'Discount %' = DIVIDE([Gross Sales] - [Net Sales], [Gross Sales])
+        formatString: 0.00%
+        displayFolder: Sales
+
+    measure 'Units Sold' = SUMX('fact_sales', 'fact_sales'[qty])
+        formatString: #,0
+        displayFolder: Sales
+
+    measure 'Avg Order Value' = DIVIDE([Net Sales], DISTINCTCOUNT('fact_sales'[txn_id]))
+        formatString: #,0.00
+        displayFolder: Sales
+
+    measure 'Net Sales LY' = CALCULATE([Net Sales], SAMEPERIODLASTYEAR('dim_date'[full_date]))
+        formatString: #,0.00
+        displayFolder: Time Intelligence
+
+    measure 'Net Sales YoY %' = DIVIDE([Net Sales] - [Net Sales LY], [Net Sales LY])
+        formatString: 0.00%
+        displayFolder: Time Intelligence
+
+    measure 'Net Sales MTD' = TOTALMTD([Net Sales], 'dim_date'[full_date])
+        formatString: #,0.00
+        displayFolder: Time Intelligence
+
+    measure 'Avg Net Per Unit' = DIVIDE(SUMX(RELATEDTABLE('fact_sales'), 'fact_sales'[net_amount]), SUMX(RELATEDTABLE('fact_sales'), 'fact_sales'[qty]))
+        formatString: #,0.00
+        displayFolder: Sales
+        isHidden: true
+
+
+table fact_inventory_snapshot
+
+    measure 'Stockout Days' = CALCULATE(DISTINCTCOUNT('fact_inventory_snapshot'[date_key]), 'fact_inventory_snapshot'[is_stockout] = TRUE())
+        formatString: #,0
+        displayFolder: Inventory
+
+    measure 'Stockout Rate %' = DIVIDE(CALCULATE(COUNTROWS('fact_inventory_snapshot'), 'fact_inventory_snapshot'[is_stockout] = TRUE()), COUNTROWS('fact_inventory_snapshot'))
+        formatString: 0.00%
+        displayFolder: Inventory
+
+    measure 'Lost Sales Estimate' = SUMX(FILTER('fact_inventory_snapshot', 'fact_inventory_snapshot'[is_stockout] = TRUE()), [Avg Net Per Unit])
+        formatString: #,0.00
+        displayFolder: Inventory
+
+
+table dim_product
+
+    measure 'Active SKU Count' = CALCULATE(DISTINCTCOUNT('dim_product'[sku]), 'dim_product'[is_current] = TRUE())
+        formatString: #,0
+        displayFolder: Product
+
+
+table audit_load_health
+
+    measure 'Rejected Row Rate %' = DIVIDE(SUMX('audit_load_health', 'audit_load_health'[rows_rejected]), SUMX('audit_load_health', 'audit_load_health'[rows_read]))
+        formatString: 0.00%
+        displayFolder: Load Health
+
+    measure 'Load Success Rate %' = DIVIDE(COUNTROWS(FILTER('audit_load_health', 'audit_load_health'[status] = "SUCCESS")), COUNTROWS('audit_load_health'))
+        formatString: 0.00%
+        displayFolder: Load Health

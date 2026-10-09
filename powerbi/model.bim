@@ -1,0 +1,199 @@
+{
+  "name": "RetailMart",
+  "compatibilityLevel": 1567,
+  "model": {
+    "culture": "en-US",
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "annotations": [
+      { "name": "RetailMart_Source", "value": "SQL Server 2022 / RetailMart (dw, audit)" }
+    ],
+    "tables": [
+      {
+        "name": "dim_date",
+        "dataCategory": "Time",
+        "annotations": [ { "name": "PBI_DateTable", "value": "true" } ],
+        "columns": [
+          { "name": "date_key", "dataType": "int64", "sourceColumn": "date_key", "isHidden": true, "isKey": true, "displayFolder": "Keys" },
+          { "name": "full_date", "dataType": "dateTime", "sourceColumn": "full_date", "formatString": "Short Date", "displayFolder": "Attributes" },
+          { "name": "year", "dataType": "int64", "sourceColumn": "year", "displayFolder": "Calendar" },
+          { "name": "quarter", "dataType": "int64", "sourceColumn": "quarter", "displayFolder": "Calendar" },
+          { "name": "month", "dataType": "int64", "sourceColumn": "month", "displayFolder": "Calendar" },
+          { "name": "month_name", "dataType": "string", "sourceColumn": "month_name", "displayFolder": "Calendar" },
+          { "name": "is_weekend", "dataType": "boolean", "sourceColumn": "is_weekend", "displayFolder": "Calendar" },
+          { "name": "is_holiday_us", "dataType": "boolean", "sourceColumn": "is_holiday_us", "displayFolder": "Calendar" }
+        ],
+        "partitions": [
+          {
+            "name": "dim_date",
+            "mode": "directQuery",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Sql.Database(\"localhost,11433\", \"RetailMart\"),",
+                "    Date = Source{[Schema=\"dw\",Item=\"dim_date\"]}[Data]",
+                "in",
+                "    Date"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "dim_product",
+        "columns": [
+          { "name": "product_sk", "dataType": "int64", "sourceColumn": "product_sk", "isHidden": true, "isKey": true, "displayFolder": "Keys" },
+          { "name": "sku", "dataType": "string", "sourceColumn": "sku", "displayFolder": "Attributes" },
+          { "name": "name", "dataType": "string", "sourceColumn": "name", "displayFolder": "Attributes" },
+          { "name": "category", "dataType": "string", "sourceColumn": "category", "displayFolder": "Attributes" },
+          { "name": "subcategory", "dataType": "string", "sourceColumn": "subcategory", "displayFolder": "Attributes" },
+          { "name": "brand", "dataType": "string", "sourceColumn": "brand", "displayFolder": "Attributes" },
+          { "name": "list_price", "dataType": "double", "sourceColumn": "list_price", "displayFolder": "Attributes" },
+          { "name": "is_active", "dataType": "boolean", "sourceColumn": "is_active", "displayFolder": "SCD2" },
+          { "name": "valid_from", "dataType": "dateTime", "sourceColumn": "valid_from", "displayFolder": "SCD2" },
+          { "name": "valid_to", "dataType": "dateTime", "sourceColumn": "valid_to", "displayFolder": "SCD2" },
+          { "name": "is_current", "dataType": "boolean", "sourceColumn": "is_current", "displayFolder": "SCD2" }
+        ],
+        "partitions": [
+          {
+            "name": "dim_product",
+            "mode": "directQuery",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Sql.Database(\"localhost,11433\", \"RetailMart\"),",
+                "    Products = Source{[Schema=\"dw\",Item=\"dim_product\"]}[Data]",
+                "in",
+                "    Products"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "dim_store",
+        "columns": [
+          { "name": "store_sk", "dataType": "int64", "sourceColumn": "store_sk", "isHidden": true, "isKey": true, "displayFolder": "Keys" },
+          { "name": "store_code", "dataType": "string", "sourceColumn": "store_code", "displayFolder": "Attributes" },
+          { "name": "store_name", "dataType": "string", "sourceColumn": "store_name", "displayFolder": "Attributes" },
+          { "name": "region", "dataType": "string", "sourceColumn": "region", "displayFolder": "Attributes" },
+          { "name": "country", "dataType": "string", "sourceColumn": "country", "displayFolder": "Attributes" },
+          { "name": "open_date", "dataType": "dateTime", "sourceColumn": "open_date", "displayFolder": "Attributes" }
+        ],
+        "partitions": [
+          {
+            "name": "dim_store",
+            "mode": "directQuery",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Sql.Database(\"localhost,11433\", \"RetailMart\"),",
+                "    Stores = Source{[Schema=\"dw\",Item=\"dim_store\"]}[Data]",
+                "in",
+                "    Stores"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "fact_sales",
+        "columns": [
+          { "name": "sale_sk", "dataType": "int64", "sourceColumn": "sale_sk", "isHidden": true, "isKey": true, "displayFolder": "Keys" },
+          { "name": "date_key", "dataType": "int64", "sourceColumn": "date_key", "isHidden": true, "displayFolder": "Keys" },
+          { "name": "product_sk", "dataType": "int64", "sourceColumn": "product_sk", "isHidden": true, "displayFolder": "Keys" },
+          { "name": "store_sk", "dataType": "int64", "sourceColumn": "store_sk", "isHidden": true, "displayFolder": "Keys" },
+          { "name": "txn_id", "dataType": "string", "sourceColumn": "txn_id", "displayFolder": "Transaction" },
+          { "name": "qty", "dataType": "int64", "sourceColumn": "qty", "displayFolder": "Measures" },
+          { "name": "unit_price", "dataType": "double", "sourceColumn": "unit_price", "displayFolder": "Measures" },
+          { "name": "discount_pct", "dataType": "double", "sourceColumn": "discount_pct", "displayFolder": "Measures" },
+          { "name": "gross_amount", "dataType": "double", "sourceColumn": "gross_amount", "displayFolder": "Measures" },
+          { "name": "discount_amount", "dataType": "double", "sourceColumn": "discount_amount", "displayFolder": "Measures" },
+          { "name": "net_amount", "dataType": "double", "sourceColumn": "net_amount", "displayFolder": "Measures" },
+          { "name": "channel", "dataType": "string", "sourceColumn": "channel", "displayFolder": "Transaction" },
+          { "name": "batch_id", "dataType": "int64", "sourceColumn": "batch_id", "isHidden": true, "displayFolder": "Keys" }
+        ],
+        "partitions": [
+          {
+            "name": "fact_sales",
+            "mode": "directQuery",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Sql.Database(\"localhost,11433\", \"RetailMart\"),",
+                "    Sales = Source{[Schema=\"dw\",Item=\"fact_sales\"]}[Data]",
+                "in",
+                "    Sales"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "fact_inventory_snapshot",
+        "columns": [
+          { "name": "date_key", "dataType": "int64", "sourceColumn": "date_key", "isHidden": true, "displayFolder": "Keys" },
+          { "name": "product_sk", "dataType": "int64", "sourceColumn": "product_sk", "isHidden": true, "displayFolder": "Keys" },
+          { "name": "store_sk", "dataType": "int64", "sourceColumn": "store_sk", "isHidden": true, "displayFolder": "Keys" },
+          { "name": "on_hand_qty", "dataType": "int64", "sourceColumn": "on_hand_qty", "displayFolder": "Inventory" },
+          { "name": "is_stockout", "dataType": "boolean", "sourceColumn": "is_stockout", "displayFolder": "Inventory" }
+        ],
+        "partitions": [
+          {
+            "name": "fact_inventory_snapshot",
+            "mode": "directQuery",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Sql.Database(\"localhost,11433\", \"RetailMart\"),",
+                "    Stockouts = Source{[Schema=\"dw\",Item=\"vw_stockouts\"]}[Data]",
+                "in",
+                "    Stockouts"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "audit_load_health",
+        "columns": [
+          { "name": "batch_id", "dataType": "int64", "sourceColumn": "batch_id", "displayFolder": "Keys" },
+          { "name": "package_name", "dataType": "string", "sourceColumn": "package_name", "displayFolder": "Attributes" },
+          { "name": "status", "dataType": "string", "sourceColumn": "status", "displayFolder": "Attributes" },
+          { "name": "rows_read", "dataType": "int64", "sourceColumn": "rows_read", "displayFolder": "Measures" },
+          { "name": "rows_inserted", "dataType": "int64", "sourceColumn": "rows_inserted", "displayFolder": "Measures" },
+          { "name": "rows_rejected", "dataType": "int64", "sourceColumn": "rows_rejected", "displayFolder": "Measures" },
+          { "name": "duration_ms", "dataType": "int64", "sourceColumn": "duration_ms", "displayFolder": "Measures" }
+        ],
+        "partitions": [
+          {
+            "name": "audit_load_health",
+            "mode": "directQuery",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Sql.Database(\"localhost,11433\", \"RetailMart\"),",
+                "    Health = Source{[Schema=\"dw\",Item=\"vw_load_health\"]}[Data]",
+                "in",
+                "    Health"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      { "name": "fs_date", "fromTable": "fact_sales", "fromColumn": "date_key", "toTable": "dim_date", "toColumn": "date_key", "crossFilteringBehavior": "oneDirection" },
+      { "name": "fs_product", "fromTable": "fact_sales", "fromColumn": "product_sk", "toTable": "dim_product", "toColumn": "product_sk", "crossFilteringBehavior": "oneDirection" },
+      { "name": "fs_store", "fromTable": "fact_sales", "fromColumn": "store_sk", "toTable": "dim_store", "toColumn": "store_sk", "crossFilteringBehavior": "oneDirection" },
+      { "name": "inv_date", "fromTable": "fact_inventory_snapshot", "fromColumn": "date_key", "toTable": "dim_date", "toColumn": "date_key", "crossFilteringBehavior": "oneDirection" },
+      { "name": "inv_product", "fromTable": "fact_inventory_snapshot", "fromColumn": "product_sk", "toTable": "dim_product", "toColumn": "product_sk", "crossFilteringBehavior": "oneDirection" },
+      { "name": "inv_store", "fromTable": "fact_inventory_snapshot", "fromColumn": "store_sk", "toTable": "dim_store", "toColumn": "store_sk", "crossFilteringBehavior": "oneDirection" }
+    ]
+  }
+}

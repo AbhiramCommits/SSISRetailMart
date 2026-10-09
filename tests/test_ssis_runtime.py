@@ -94,15 +94,18 @@ def test_parse_sales_foreach_and_fact_precedence():
 
 
 # --- integration ----------------------------------------------------------
-def _reset_failed_rows(batch_id):
+def _reset_batch(batch_id):
     with db.get_connection() as conn:
+        for table in ("stg.stores_raw", "stg.sales_raw", "stg.products_raw"):
+            db.execute(conn, f"DELETE FROM {table} WHERE batch_id=%s", (batch_id,))
         db.execute(conn, "DELETE FROM audit.failed_rows WHERE batch_id=%s", (batch_id,))
+        db.execute(conn, "DELETE FROM audit.etl_batch WHERE batch_id=%s", (batch_id,))
 
 
 @pytest.mark.integration
 def test_load_stores_redirects_exactly_three_rows():
     batch_id = 900001
-    _reset_failed_rows(batch_id)
+    _reset_batch(batch_id)
     result = execute_package(
         PACKAGES / "LoadStores.dtsx",
         {"BatchId": batch_id, "LandingPath": "data/landing/"},
@@ -161,7 +164,7 @@ def test_load_sales_rejects_every_injected_bad_row(tmp_path):
                     expected_bad += 1
 
     batch_id = 900002
-    _reset_failed_rows(batch_id)
+    _reset_batch(batch_id)
     result = execute_package(
         PACKAGES / "LoadSalesCsv.dtsx",
         {"BatchId": batch_id, "LandingPath": str(tmp_path) + "/"},

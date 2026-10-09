@@ -1,0 +1,37 @@
+{
+  "name": "RetailMart Sales & Load Health",
+  "semanticModel": "RetailMart",
+  "pages": [
+    {
+      "name": "Sales Trends",
+      "displayName": "1. Sales Trends",
+      "visuals": [
+        { "type": "lineChart", "title": "Net Sales by Month with YoY", "fields": ["dim_date.month_name", "Measures.Net Sales", "Measures.Net Sales YoY %"] },
+        { "type": "barChart", "title": "Top 10 Products by Net Sales", "fields": ["dim_product.name", "Measures.Net Sales"], "topN": 10 },
+        { "type": "map", "title": "Net Sales by Region", "fields": ["dim_store.region", "Measures.Net Sales"] },
+        { "type": "donutChart", "title": "Channel Mix", "fields": ["fact_sales.channel", "Measures.Net Sales"] },
+        { "type": "card", "title": "Avg Order Value", "fields": ["Measures.Avg Order Value"] }
+      ]
+    },
+    {
+      "name": "Stockouts & Inventory",
+      "displayName": "2. Stockouts & Inventory",
+      "visuals": [
+        { "type": "barChart", "title": "Stockout Rate % by Category", "fields": ["dim_product.category", "Measures.Stockout Rate %"] },
+        { "type": "card", "title": "Lost Sales Estimate", "fields": ["Measures.Lost Sales Estimate"] },
+        { "type": "table", "title": "Worst 20 Store / SKU Pairs", "fields": ["dim_store.store_code", "dim_product.sku", "Measures.Stockout Days"], "topN": 20 },
+        { "type": "card", "title": "Stockout Days", "fields": ["Measures.Stockout Days"] }
+      ]
+    },
+    {
+      "name": "Load Health",
+      "displayName": "3. Load Health",
+      "visuals": [
+        { "type": "barChart", "title": "Package Durations (ms)", "fields": ["audit_load_health.package_name", "audit_load_health.duration_ms"] },
+        { "type": "clusteredColumnChart", "title": "Rows Read vs Inserted vs Rejected", "fields": ["audit_load_health.package_name", "audit_load_health.rows_read", "audit_load_health.rows_inserted", "audit_load_health.rows_rejected"] },
+        { "type": "matrix", "title": "Checksum Match Matrix", "fields": ["audit.checksum_check.column_name", "audit.checksum_check.matched"] },
+        { "type": "gauge", "title": "Assertion Pass Rate", "fields": ["Measures.Load Success Rate %"] }
+      ]
+    }
+  ]
+}
