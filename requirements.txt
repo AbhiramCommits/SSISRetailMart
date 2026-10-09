@@ -1,0 +1,11 @@
+# Pinned for reproducible builds (Python 3.11)
+pymssql==2.4.3
+python-dotenv==1.0.1
+fastapi==0.115.6
+uvicorn==0.34.0
+httpx==0.28.1
+requests==2.32.3
+pytest==8.3.4
+pytest-timeout==2.3.1
+ruff==0.8.4
+apache-airflow==2.10.4

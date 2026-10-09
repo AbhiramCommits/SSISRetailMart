@@ -1,0 +1,32 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environment
+.env
+
+# Generated extract files (recreate with `make seed`)
+data/landing/*.csv
+data/landing/*.txt
+data/landing/products_page_*.json
+data/landing/product_changes.json
+data/landing/manifest.json
+!data/landing/.gitkeep
+
+# Airflow local home artifacts (keep airflow/dags + airflow_local.sh)
+airflow/airflow.cfg
+airflow/airflow.db
+airflow/webserver_config.py
+airflow/logs/
+airflow/*.pid
+airflow/standalone_admin_password.txt
+
+# OS / editor
+.DS_Store
+*.log
