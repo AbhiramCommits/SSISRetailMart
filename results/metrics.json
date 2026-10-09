@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-10-09T16:34:24",
+  "generated_at": "2026-10-09T16:35:02",
   "batch_id": 20240603000000,
   "fact_rows": 717120,
-  "distinct_skus": 5119,
+  "distinct_product_versions": 5119,
   "distinct_stores": 200,
   "distinct_days": 90,
   "dim_products": 5000,
@@ -116,11 +116,11 @@
     }
   ],
   "measures": {
-    "Net Sales": 1692895443.6334794,
-    "Gross Sales": 1798934075.0299437,
-    "Discount %": 0.058945257009895474,
+    "Net Sales": 1692895443.6334815,
+    "Gross Sales": 1798934075.0299652,
+    "Discount %": 0.058945257009894544,
     "Units Sold": 3946371.0,
-    "Avg Order Value": 2360.6864173826966,
+    "Avg Order Value": 2360.6864173826993,
     "Net Sales LY": null,
     "Net Sales YoY %": null,
     "Net Sales MTD": 55930336.51400018,

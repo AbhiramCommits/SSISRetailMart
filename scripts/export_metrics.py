@@ -33,7 +33,7 @@ def collect() -> dict:
         batch_id = latest_batch(conn)
         scalar = db.scalar
         fact_rows = scalar(conn, "SELECT COUNT(*) FROM dw.fact_sales")
-        distinct_skus = scalar(
+        distinct_product_versions = scalar(
             conn, "SELECT COUNT(DISTINCT product_sk) FROM dw.fact_sales WHERE product_sk <> -1"
         )
         distinct_stores = scalar(conn, "SELECT COUNT(DISTINCT store_sk) FROM dw.fact_sales")
@@ -99,7 +99,7 @@ def collect() -> dict:
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "batch_id": batch_id,
         "fact_rows": fact_rows,
-        "distinct_skus": distinct_skus,
+        "distinct_product_versions": distinct_product_versions,
         "distinct_stores": distinct_stores,
         "distinct_days": distinct_days,
         "dim_products": dim_products,
@@ -132,7 +132,7 @@ def to_markdown(m: dict) -> str:
         "| Metric | Value |",
         "| --- | --- |",
         f"| fact_sales rows | {m['fact_rows']:,} |",
-        f"| distinct SKUs (fact) | {m['distinct_skus']:,} |",
+        f"| distinct product versions (fact) | {m['distinct_product_versions']:,} |",
         f"| distinct stores (fact) | {m['distinct_stores']:,} |",
         f"| distinct days (fact) | {m['distinct_days']:,} |",
         f"| dim_product rows | {m['dim_products']:,} |",

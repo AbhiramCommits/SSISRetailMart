@@ -1,13 +1,13 @@
 # RetailMart load metrics
 
-_Generated 2026-10-09T16:34:24 from batch `20240603000000`._
+_Generated 2026-10-09T16:35:02 from batch `20240603000000`._
 
 ## Warehouse
 
 | Metric | Value |
 | --- | --- |
 | fact_sales rows | 717,120 |
-| distinct SKUs (fact) | 5,119 |
+| distinct product versions (fact) | 5,119 |
 | distinct stores (fact) | 200 |
 | distinct days (fact) | 90 |
 | dim_product rows | 5,000 |
@@ -35,7 +35,7 @@ _Generated 2026-10-09T16:34:24 from batch `20240603000000`._
 | Measure | Value |
 | --- | --- |
 | Net Sales | 1,692,895,443.6335 |
-| Gross Sales | 1,798,934,075.0299 |
+| Gross Sales | 1,798,934,075.0300 |
 | Discount % | 0.0589 |
 | Units Sold | 3,946,371.0000 |
 | Avg Order Value | 2,360.6864 |
