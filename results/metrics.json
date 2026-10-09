@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-10-09T16:07:42",
+  "generated_at": "2026-10-09T16:34:24",
   "batch_id": 20240603000000,
   "fact_rows": 717120,
-  "distinct_skus": 5000,
+  "distinct_skus": 5119,
   "distinct_stores": 200,
   "distinct_days": 90,
   "dim_products": 5000,
@@ -52,8 +52,8 @@
       "rows_read": 203,
       "rows_inserted": 200,
       "rows_rejected": 3,
-      "duration_ms": 338,
-      "rows_per_sec": 600.6
+      "duration_ms": 419,
+      "rows_per_sec": 484.5
     },
     {
       "package_name": "LoadSalesCsv",
@@ -61,8 +61,8 @@
       "rows_read": 720000,
       "rows_inserted": 717120,
       "rows_rejected": 2880,
-      "duration_ms": 410745,
-      "rows_per_sec": 1752.9
+      "duration_ms": 499477,
+      "rows_per_sec": 1441.5
     },
     {
       "package_name": "LoadProductsRest",
@@ -70,8 +70,8 @@
       "rows_read": 5120,
       "rows_inserted": 5120,
       "rows_rejected": 0,
-      "duration_ms": 3099,
-      "rows_per_sec": 1652.1
+      "duration_ms": 2265,
+      "rows_per_sec": 2260.5
     },
     {
       "package_name": "LoadDimensions",
@@ -79,20 +79,20 @@
       "rows_read": 0,
       "rows_inserted": 5320,
       "rows_rejected": 0,
-      "duration_ms": 3992,
+      "duration_ms": 5662,
       "rows_per_sec": 0.0
     },
     {
       "package_name": "LoadFactSales",
       "status": "SUCCESS",
       "rows_read": 0,
-      "rows_inserted": 1431365,
+      "rows_inserted": 714245,
       "rows_rejected": 0,
-      "duration_ms": 20245,
+      "duration_ms": 12110,
       "rows_per_sec": 0.0
     }
   ],
-  "wall_clock_seconds": 439,
+  "wall_clock_seconds": 646,
   "failed_rows_breakdown": [
     {
       "component": "Conditional Split",
@@ -116,20 +116,20 @@
     }
   ],
   "measures": {
-    "Net Sales": 1692895443.6334743,
-    "Gross Sales": 1798934075.0299842,
-    "Discount %": 0.05894525700989408,
+    "Net Sales": 1692895443.6334794,
+    "Gross Sales": 1798934075.0299437,
+    "Discount %": 0.058945257009895474,
     "Units Sold": 3946371.0,
-    "Avg Order Value": 2360.68641738269,
+    "Avg Order Value": 2360.6864173826966,
     "Net Sales LY": null,
     "Net Sales YoY %": null,
-    "Net Sales MTD": 55930336.51400017,
+    "Net Sales MTD": 55930336.51400018,
     "Stockout Days": 90.0,
-    "Stockout Rate %": 0.061912929036955104,
-    "Lost Sales Estimate": 18874531.778509,
+    "Stockout Rate %": 0.061890527760082324,
+    "Lost Sales Estimate": 18864215.47299,
     "Active SKU Count": 5000.0,
     "Rejected Row Rate %": 0.003978514421114144,
     "Load Success Rate %": 1.0
   },
-  "stockout_rate": 0.061912929036955104
+  "stockout_rate": 0.061890527760082324
 }

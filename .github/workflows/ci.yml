@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Str0ng!Passw0rd"
+          MSSQL_PID: Developer
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 30
+          --health-start-period 30s
+    env:
+      SA_PASSWORD: "Str0ng!Passw0rd"
+      MSSQL_HOST: 127.0.0.1
+      MSSQL_PORT: "1433"
+      MSSQL_DATABASE: RetailMart
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ODBC driver and sqlcmd tools
+        continue-on-error: true
+        run: |
+          curl -sSL https://packages.microsoft.com/keys/microsoft.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+          curl -sSL https://packages.microsoft.com/config/ubuntu/22.04/prod.list \
+            | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18 unixodbc-dev
+
+      - name: Create virtualenv and install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Lint
+        run: .venv/bin/ruff check .
+
+      - name: Seed extracts
+        run: make seed
+
+      - name: Initialise warehouse
+        run: make db-init
+
+      - name: Run SSIS packages
+        run: make etl
+
+      - name: Run test suite
+        run: .venv/bin/python -m pytest -q
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results
+          path: results/
+
+  dag-test:
+    runs-on: ubuntu-latest
+    env:
+      AIRFLOW_HOME: ${{ github.workspace }}/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_FOLDER: ${{ github.workspace }}/airflow/dags
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:///${{ github.workspace }}/airflow/airflow.db
+      AIRFLOW__CORE__XCOM_BACKEND: airflow.models.xcom.BaseXCom
+      AIRFLOW__WEBSERVER__SECRET_KEY: ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Create virtualenv and install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Set Fernet key
+        run: |
+          .venv/bin/python -c "from cryptography.fernet import Fernet; print('AIRFLOW__CORE__FERNET_KEY=' + Fernet.generate_key().decode())" >> "$GITHUB_ENV"
+
+      - name: Initialise Airflow metadata DB
+        run: .venv/bin/airflow db migrate
+
+      - name: DAG import integrity tests
+        run: .venv/bin/python -m pytest tests/test_dag_integrity.py -q

@@ -1,0 +1,118 @@
+{
+  "batch_id": 20240603000000,
+  "cold_load": {
+    "wall_clock_ms": 539713,
+    "wall_clock_seconds": 539.713,
+    "packages": [
+      {
+        "package": "LoadStores",
+        "batch_id": 20240603000000,
+        "status": "SUCCESS",
+        "rows_read": 203,
+        "rows_inserted": 200,
+        "rows_updated": 0,
+        "rows_rejected": 3,
+        "duration_ms": 445,
+        "error": null,
+        "detail": {
+          "variables": {
+            "BatchId": 20240603000000,
+            "LandingPath": "data/landing/"
+          }
+        },
+        "exit_code": 0,
+        "rows_per_sec": 456.2
+      },
+      {
+        "package": "LoadSalesCsv",
+        "batch_id": 20240603000000,
+        "status": "SUCCESS",
+        "rows_read": 720000,
+        "rows_inserted": 717120,
+        "rows_updated": 0,
+        "rows_rejected": 2880,
+        "duration_ms": 499496,
+        "error": null,
+        "detail": {
+          "variables": {
+            "BatchId": 20240603000000,
+            "LandingPath": "data/landing/",
+            "CurrentFile": "/Users/abhiramkasireddi/SSISRetailMart/data/landing/sales_20240503.csv"
+          }
+        },
+        "exit_code": 0,
+        "rows_per_sec": 1441.5
+      },
+      {
+        "package": "LoadProductsRest",
+        "batch_id": 20240603000000,
+        "status": "SUCCESS",
+        "rows_read": 5120,
+        "rows_inserted": 5120,
+        "rows_updated": 0,
+        "rows_rejected": 0,
+        "duration_ms": 2281,
+        "error": null,
+        "detail": {
+          "variables": {
+            "BatchId": 20240603000000,
+            "LandingPath": "data/landing/",
+            "ProductApiUrl": "http://127.0.0.1:8099",
+            "UseLiveApi": "False"
+          }
+        },
+        "exit_code": 0,
+        "rows_per_sec": 2244.6
+      },
+      {
+        "package": "LoadDimensions",
+        "batch_id": 20240603000000,
+        "status": "SUCCESS",
+        "rows_read": 0,
+        "rows_inserted": 5320,
+        "rows_updated": 120,
+        "rows_rejected": 0,
+        "duration_ms": 5676,
+        "error": null,
+        "detail": {
+          "variables": {
+            "BatchId": 20240603000000,
+            "LandingPath": "data/landing/"
+          }
+        },
+        "exit_code": 0,
+        "rows_per_sec": 0.0
+      },
+      {
+        "package": "LoadFactSales",
+        "batch_id": 20240603000000,
+        "status": "SUCCESS",
+        "rows_read": 0,
+        "rows_inserted": 1431365,
+        "rows_updated": 0,
+        "rows_rejected": 0,
+        "duration_ms": 31806,
+        "error": null,
+        "detail": {
+          "variables": {
+            "BatchId": 20240603000000,
+            "LandingPath": "data/landing/"
+          }
+        },
+        "exit_code": 0,
+        "rows_per_sec": 0.0
+      }
+    ]
+  },
+  "warm_incremental_load": {
+    "duration_ms": 10343,
+    "rows_inserted": 0
+  },
+  "fact_insert": {
+    "rows": 717120,
+    "index_on_ms": 10782,
+    "index_off_ms": 2317,
+    "index_on_rows_per_sec": 66510.9,
+    "index_off_rows_per_sec": 309503.7
+  }
+}

@@ -202,24 +202,26 @@ def build_product_changes(
     """~120 price/category deltas that drive SCD Type 2 versioning."""
     chosen = rng.sample(range(len(products)), N_PRODUCT_CHANGES)
     changes: list[dict] = []
+    categories = list(CATEGORIES)
     for idx, product_index in enumerate(chosen):
         product = products[product_index]
         change_date = days[rng.randint(1, len(days) - 1)]
         kind = "price" if idx % 2 == 0 else "category"
-        change = {
-            "sku": product["sku"],
-            "change_date": change_date.isoformat(),
-            "change_type": kind,
-        }
+        # A change feed carries the full product record plus the effective date.
+        change = dict(product)
+        change["effective_date"] = change_date.isoformat()
+        change["change_type"] = kind
         if kind == "price":
             factor = rng.choice([0.85, 0.9, 1.1, 1.15, 1.25])
             change["list_price"] = round(product["list_price"] * factor, 2)
         else:
-            new_category = rng.choice(list(CATEGORIES))
+            new_category = rng.choice(categories)
+            if new_category == product["category"]:
+                new_category = categories[(categories.index(new_category) + 1) % len(categories)]
             change["category"] = new_category
             change["subcategory"] = CATEGORIES[new_category][0]
         changes.append(change)
-    changes.sort(key=lambda c: (c["change_date"], c["sku"]))
+    changes.sort(key=lambda c: (c["effective_date"], c["sku"]))
     return changes
 
 
