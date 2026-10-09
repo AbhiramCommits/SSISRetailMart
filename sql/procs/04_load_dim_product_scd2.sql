@@ -18,7 +18,8 @@ BEGIN
         @eff DATE,
         @hash CHAR(64),
         @cur_sk INT,
-        @cur_hash CHAR(64);
+        @cur_hash CHAR(64),
+        @cur_valid DATE;
 
     DECLARE staged CURSOR LOCAL FAST_FORWARD FOR
         SELECT
@@ -38,7 +39,8 @@ BEGIN
     BEGIN
         SET @cur_sk = NULL;
         SET @cur_hash = NULL;
-        SELECT @cur_sk = product_sk, @cur_hash = row_hash
+        SET @cur_valid = NULL;
+        SELECT @cur_sk = product_sk, @cur_hash = row_hash, @cur_valid = valid_from
         FROM dw.dim_product
         WHERE sku = @sku AND is_current = 1;
 
@@ -52,7 +54,7 @@ BEGIN
                  @eff, NULL, 1, @hash);
             SET @ins = @ins + 1;
         END
-        ELSE IF ISNULL(@cur_hash, REPLICATE('0', 64)) <> @hash
+        ELSE IF ISNULL(@cur_hash, REPLICATE('0', 64)) <> @hash AND @eff >= @cur_valid
         BEGIN
             UPDATE dw.dim_product
             SET is_current = 0,

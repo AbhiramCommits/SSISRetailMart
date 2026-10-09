@@ -1,4 +1,8 @@
-/* 07_audit_checks.sql - row-count and checksum parity recorders. */
+/* 07_audit_checks.sql - row-count and checksum parity recorders.
+
+   Parity is measured over the transactions staged in @batch_id, matched by
+   business key (txn_id).  This keeps the audit meaningful even when the fact
+   load is re-run and short-circuits on the idempotency guard. */
 CREATE OR ALTER PROCEDURE audit.sp_record_row_counts
     @batch_id BIGINT
 AS
@@ -10,9 +14,13 @@ BEGIN
     INSERT INTO audit.row_count_check (batch_id, table_name, source_rows, target_rows, delta)
     SELECT @batch_id, 'stg.sales_raw -> dw.fact_sales',
            (SELECT COUNT_BIG(*) FROM stg.sales_raw WHERE batch_id = @batch_id AND is_valid = 1),
-           (SELECT COUNT_BIG(*) FROM dw.fact_sales WHERE batch_id = @batch_id),
+           (SELECT COUNT_BIG(*) FROM dw.fact_sales f
+            WHERE EXISTS (SELECT 1 FROM stg.sales_raw s
+                          WHERE s.batch_id = @batch_id AND s.is_valid = 1 AND s.txn_id = f.txn_id)),
            (SELECT COUNT_BIG(*) FROM stg.sales_raw WHERE batch_id = @batch_id AND is_valid = 1)
-             - (SELECT COUNT_BIG(*) FROM dw.fact_sales WHERE batch_id = @batch_id);
+             - (SELECT COUNT_BIG(*) FROM dw.fact_sales f
+                WHERE EXISTS (SELECT 1 FROM stg.sales_raw s
+                              WHERE s.batch_id = @batch_id AND s.is_valid = 1 AND s.txn_id = f.txn_id));
 
     INSERT INTO audit.row_count_check (batch_id, table_name, source_rows, target_rows, delta)
     SELECT @batch_id, 'stg.stores_raw -> dw.dim_store',
@@ -46,16 +54,20 @@ BEGIN
     SELECT @src_qty_sum = SUM(qty), @src_net_sum = SUM(net_amount)
     FROM stg.sales_raw WHERE batch_id = @batch_id AND is_valid = 1;
 
-    SELECT @tgt_qty_sum = SUM(qty), @tgt_net_sum = SUM(net_amount)
-    FROM dw.fact_sales WHERE batch_id = @batch_id;
+    SELECT @tgt_qty_sum = SUM(f.qty), @tgt_net_sum = SUM(f.net_amount)
+    FROM dw.fact_sales f
+    WHERE EXISTS (SELECT 1 FROM stg.sales_raw s
+                  WHERE s.batch_id = @batch_id AND s.is_valid = 1 AND s.txn_id = f.txn_id);
 
     SELECT @src_qty_chk = CHECKSUM_AGG(BINARY_CHECKSUM(qty)),
            @src_net_chk = CHECKSUM_AGG(BINARY_CHECKSUM(net_amount))
     FROM stg.sales_raw WHERE batch_id = @batch_id AND is_valid = 1;
 
-    SELECT @tgt_qty_chk = CHECKSUM_AGG(BINARY_CHECKSUM(qty)),
-           @tgt_net_chk = CHECKSUM_AGG(BINARY_CHECKSUM(net_amount))
-    FROM dw.fact_sales WHERE batch_id = @batch_id;
+    SELECT @tgt_qty_chk = CHECKSUM_AGG(BINARY_CHECKSUM(f.qty)),
+           @tgt_net_chk = CHECKSUM_AGG(BINARY_CHECKSUM(f.net_amount))
+    FROM dw.fact_sales f
+    WHERE EXISTS (SELECT 1 FROM stg.sales_raw s
+                  WHERE s.batch_id = @batch_id AND s.is_valid = 1 AND s.txn_id = f.txn_id);
 
     INSERT INTO audit.checksum_check
         (batch_id, table_name, column_name, source_checksum, target_checksum, matched)

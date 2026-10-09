@@ -1,0 +1,114 @@
+{
+  "batch_id": 20240603000000,
+  "packages": [
+    {
+      "package_name": "LoadStores",
+      "status": "SUCCESS",
+      "rows_read": 203,
+      "rows_inserted": 200,
+      "rows_updated": 0,
+      "rows_rejected": 3,
+      "duration_ms": 338
+    },
+    {
+      "package_name": "LoadSalesCsv",
+      "status": "SUCCESS",
+      "rows_read": 720000,
+      "rows_inserted": 717120,
+      "rows_updated": 0,
+      "rows_rejected": 2880,
+      "duration_ms": 410745
+    },
+    {
+      "package_name": "LoadProductsRest",
+      "status": "SUCCESS",
+      "rows_read": 5120,
+      "rows_inserted": 5120,
+      "rows_updated": 0,
+      "rows_rejected": 0,
+      "duration_ms": 3099
+    },
+    {
+      "package_name": "LoadDimensions",
+      "status": "SUCCESS",
+      "rows_read": 0,
+      "rows_inserted": 5320,
+      "rows_updated": 120,
+      "rows_rejected": 0,
+      "duration_ms": 3992
+    },
+    {
+      "package_name": "LoadFactSales",
+      "status": "SUCCESS",
+      "rows_read": 0,
+      "rows_inserted": 1431365,
+      "rows_updated": 0,
+      "rows_rejected": 0,
+      "duration_ms": 20245
+    }
+  ],
+  "checksums": [
+    {
+      "column_name": "qty[SUM]",
+      "matched": true
+    },
+    {
+      "column_name": "qty[CHECKSUM_AGG]",
+      "matched": true
+    },
+    {
+      "column_name": "net_amount[SUM]",
+      "matched": true
+    },
+    {
+      "column_name": "net_amount[CHECKSUM_AGG]",
+      "matched": true
+    }
+  ],
+  "assertions": [
+    {
+      "assertion_name": "fact_dates_in_dim_date",
+      "status": "PASS",
+      "observed_value": "0.0000",
+      "threshold": "0.0000"
+    },
+    {
+      "assertion_name": "net_amount_consistency",
+      "status": "PASS",
+      "observed_value": "0.0000",
+      "threshold": "0.0000"
+    },
+    {
+      "assertion_name": "no_duplicate_txn_id",
+      "status": "PASS",
+      "observed_value": "0.0000",
+      "threshold": "0.0000"
+    },
+    {
+      "assertion_name": "no_orphan_product_keys",
+      "status": "PASS",
+      "observed_value": "0.0000",
+      "threshold": "0.0000"
+    },
+    {
+      "assertion_name": "no_orphan_store_keys",
+      "status": "PASS",
+      "observed_value": "0.0000",
+      "threshold": "0.0000"
+    },
+    {
+      "assertion_name": "one_current_row_per_sku",
+      "status": "PASS",
+      "observed_value": "0.0000",
+      "threshold": "0.0000"
+    },
+    {
+      "assertion_name": "rejected_row_rate",
+      "status": "PASS",
+      "observed_value": "0.0040",
+      "threshold": "0.0500"
+    }
+  ],
+  "assertion_pass_count": 7,
+  "assertion_fail_count": 0
+}
